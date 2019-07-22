@@ -21,7 +21,6 @@ function (m::Attention)(x::AbstractArray{T, 3} where T)
 
     score = tanh.(logit)
     score = sum(m.U .* score, dims=2)
-    # α = TensorSoftmax(score, dims=1)
     α = TensorSoftmax(score, dims=2)
     return sum(x .* α, dims=1)
 end

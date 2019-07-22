@@ -36,7 +36,7 @@ function ScalarDotAttention(Query::AbstractArray{T, 3} where T, Key::AbstractArr
         Numerator = Numerator .* Mask
     end
 
-    x = TensorSoftmax(Numerator / Denominator, dims=1)
+    x = TensorSoftmax(Numerator / Denominator, dims=2)
     x = [@inbounds x[:, :, batch] * Value[:, :, batch] for batch in 1:size(Query, 3)]
     return cat(x..., dims=3)
 end
