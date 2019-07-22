@@ -23,25 +23,19 @@ struct SequenceModel
 end
 
 SequenceModel(Dims::Integer, VocabSize::Integer, TimeSteps::Integer, MHALayers::Integer, MHAStacks::Integer) = SequenceModel(
-    TimeSteps, 
-    VocabSize, 
-    Dims,
-    MHAStacks,
-    Dropout(0.1),
-    Dropout(0.1),
-    Embedding(VocabSize, Dims), 
-    Encoder(TimeSteps, Dims),
-    Attention(Dims),
-    MultiHeadAttention(Dims, MHALayers),
+    TimeSteps, VocabSize, Dims, MHAStacks,
+    Dropout(0.1), Dropout(0.1),
+    Embedding(VocabSize, Dims), Encoder(TimeSteps, Dims),
+    Attention(Dims), MultiHeadAttention(Dims, MHALayers),
     PointwiseFeedForward(Dims))
 Flux.@treelike SequenceModel
 
 function (m::SequenceModel)(x::AbstractArray{T, 1} where T)
-    SeqLens = SequenceLengths(x)
+    EncSeqLens = SequenceLengths(x)
 
     x = m.Emb(x)
     x = SequencePad(x, m.T)
-    mask = Flux.param(SequenceMask(x, SeqLens))
+    mask = Flux.param(SequenceMask(x, EncSeqLens))
     x = m.Enc(x, mask) .+ x
     x = m.IDrop(x)
     
