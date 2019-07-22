@@ -1,4 +1,4 @@
-using Flux: TrackedArray
+using Flux
 
 SequenceLengths(x::AbstractArray{T, 1} where T) = [Int32(size(x[batch], 1)) for batch in 1:size(x, 1)]
 
