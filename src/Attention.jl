@@ -28,11 +28,8 @@ end
 function (m::Attention)(x::AbstractArray{T, 3} where T, y::AbstractArray{T, 3} where T)
     # x is the encoded input, y the decoded input, the channels are (T, D, N)
     # this is equivalent to einsum("jmi,mn,kni->jki", x, W, y), with softmax on each batch matrix
-    α = [
-        Flux.softmax(x[:, :, batch] * m.W * transpose(y[:, :, batch]))
-        for batch in 1:size(x, 3)
-    ]
-    α = cat(α..., dims=3)
+    α = cat([@inbounds x[:, :, batch] * m.W * transpose(y[:, :, batch]) for batch in 1:size(x, 3)]..., dims=3)
+    α = TensorSoftmax(α, dims=2)
     α = sum(α, dims=1)
     return dropdims(sum(y .* permutedims(α, [2, 1, 3]), dims=1), dims=1)
 end

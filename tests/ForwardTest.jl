@@ -8,7 +8,8 @@ Stacks = 1
 Model = SequenceModel(EmbDims, Vocab, TimeSteps, Layers, Stacks)
 
 X = map(a->Int32.(a), [[3,7,3,5], [8,6,4,5,2,1], [10,7,5], [11,3]]);
-@time (output, context) = Model(X);
+Y = map(a->Int32.(a), [[3,7,3,5], [8,6,4,5,2,1], [10,7,5], [11,3]]);
+@time (output, context, decoutput, crosscontext) = Model(X, Y);
 println(size(output))
 
-@time Model(X);
+@time Model(X, Y);
