@@ -9,9 +9,9 @@ struct Attention
 end
 
 Attention(dims::Integer) = Attention(
-    Flux.param(randn(Float32, dims, dims)),
-    Flux.param(zeros(Float32, 1, dims)),
-    Flux.param(zeros(Float32, 1, dims)))
+    Flux.param(randn(Float32, dims, dims)) |> Flux.gpu,
+    Flux.param(zeros(Float32, 1, dims)) |> Flux.gpu,
+    Flux.param(zeros(Float32, 1, dims)) |> Flux.gpu)
 
 function (m::Attention)(x::AbstractArray{T, 3} where T)
     # x is the encoded input, the channels are (T, D, N)

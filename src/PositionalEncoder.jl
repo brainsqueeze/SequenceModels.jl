@@ -1,4 +1,4 @@
-using Flux: param, TrackedArray
+using Flux: param, TrackedArray, gpu
 
 function build_encoder(seqLen::Integer, dims::Integer)
     positions = 1:seqLen

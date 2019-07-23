@@ -36,7 +36,9 @@ function (m::SequenceModel)(x::AbstractArray{T, 1} where T, y::AbstractArray{T, 
 
     x = m.Emb(x)
     x = SequencePad(x, m.T)
-    EncMask = Flux.param(SequenceMask(x, EncSeqLens))
+    EncMask = SequenceMask(x, EncSeqLens)
+    println(typeof(m.Enc(x, EncMask)))
+    println(typeof(x))
     x = m.Enc(x, EncMask) .+ x
     x = m.IDrop(x)
     
@@ -66,7 +68,7 @@ function (m::SequenceModel)(x::AbstractArray{T, 1} where T, y::AbstractArray{T, 
         y = m.MHA(y, y, y, futuremask=true)
     end
     y = m.HDrop(y) .+ y
-    println(y[:, :, 1])
+    println(size(y[:, :, 1]))
     y = BatchLayerNorm(y)
 
     CrossContext = m.Attn(x .* EncMask, y .* DecMask)
