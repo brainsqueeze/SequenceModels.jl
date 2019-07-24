@@ -23,5 +23,8 @@ Encoder(seqLen::Integer, dims::Integer) = Encoder(param(build_encoder(seqLen, di
 function (m::Encoder)(x::AbstractArray{T, 3} where T, mask::AbstractArray{T, 3} where T)
     maxLen = size(m.E, 1)
     x = x[1:min(size(x, 1), maxLen), :, :]
+
+    println(typeof(x))
+
     return m.E .* mask
 end
