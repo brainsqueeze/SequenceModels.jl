@@ -16,7 +16,7 @@ struct SequenceModel
     IDrop
     HDrop
     Emb
-    Enc
+    PosEnc
     Attn
     MHA
     FFN
@@ -25,21 +25,21 @@ end
 SequenceModel(Dims::Integer, VocabSize::Integer, TimeSteps::Integer, MHALayers::Integer, MHAStacks::Integer) = SequenceModel(
     TimeSteps, VocabSize, Dims, MHAStacks,
     Dropout(0.1), Dropout(0.1),
-    Embedding(VocabSize, Dims), Encoder(TimeSteps, Dims),
+    Embedding(VocabSize, Dims), PositionEncoder(TimeSteps, Dims),
     Attention(Dims), MultiHeadAttention(Dims, MHALayers),
     PointwiseFeedForward(Dims))
 Flux.@treelike SequenceModel
 
-function (m::SequenceModel)(x::AbstractArray{T, 1} where T, y::AbstractArray{T, 1} where T)
+function (m::SequenceModel)(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     EncSeqLens = SequenceLengths(x)
     DecSeqLens = SequenceLengths(y)
 
     x = m.Emb(x)
     x = SequencePad(x, m.T)
     EncMask = SequenceMask(x, EncSeqLens)
-    println(typeof(m.Enc(x, EncMask)))
-    println(typeof(x))
-    x = m.Enc(x, EncMask) .+ x
+    # println(typeof(m.PosEnc(x, EncMask)))
+    # println(typeof(x))
+    x = m.PosEnc(x, EncMask) .+ x
     x = m.IDrop(x)
     
     # multi-head attention
@@ -60,7 +60,7 @@ function (m::SequenceModel)(x::AbstractArray{T, 1} where T, y::AbstractArray{T, 
     y = m.Emb(y)
     y = SequencePad(y, m.T)
     DecMask = Flux.param(SequenceMask(y, DecSeqLens))
-    y = m.Enc(y, DecMask) .+ y
+    y = m.PosEnc(y, DecMask) .+ y
     y = m.IDrop(y)
 
     # multi-head attention

@@ -6,8 +6,8 @@ struct PointwiseFeedForward
 end
 
 PointwiseFeedForward(dims::Integer) = PointwiseFeedForward(
-    Flux.Conv((1, 1), dims => 4 * dims, Flux.relu) |> Flux.gpu,
-    Flux.Conv((1, 1), 4 * dims => dims) |> Flux.gpu
+    Flux.Conv((1, 1), dims => 4 * dims, Flux.relu),
+    Flux.Conv((1, 1), 4 * dims => dims)
 )
 Flux.@treelike PointwiseFeedForward
 

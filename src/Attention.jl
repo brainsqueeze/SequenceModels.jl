@@ -2,16 +2,16 @@ using Flux
 
 include("TensorOps.jl")
 
-struct Attention
-    W::Flux.TrackedArray{T, 2} where T
-    B::Flux.TrackedArray{T, 2} where T
-    U::Flux.TrackedArray{T, 2} where T
+struct Attention{T}
+    W::Flux.TrackedArray{T, 2}
+    B::Flux.TrackedArray{T, 2}
+    U::Flux.TrackedArray{T, 2}
 end
 
 Attention(dims::Integer) = Attention(
-    Flux.param(randn(Float32, dims, dims)) |> Flux.gpu,
-    Flux.param(zeros(Float32, 1, dims)) |> Flux.gpu,
-    Flux.param(zeros(Float32, 1, dims)) |> Flux.gpu)
+    Flux.param(randn(Float32, dims, dims)),
+    Flux.param(zeros(Float32, 1, dims)),
+    Flux.param(zeros(Float32, 1, dims)))
 
 function (m::Attention)(x::AbstractArray{T, 3} where T)
     # x is the encoded input, the channels are (T, D, N)
@@ -25,7 +25,7 @@ function (m::Attention)(x::AbstractArray{T, 3} where T)
     return sum(x .* α, dims=1)
 end
 
-function (m::Attention)(x::AbstractArray{T, 3} where T, y::AbstractArray{T, 3} where T)
+function (m::Attention)(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T
     # x is the encoded input, y the decoded input, the channels are (T, D, N)
     # this is equivalent to einsum("jmi,mn,kni->jki", x, W, y), with softmax on each batch matrix
     α = cat([@inbounds x[:, :, batch] * m.W * transpose(y[:, :, batch]) for batch in 1:size(x, 3)]..., dims=3)

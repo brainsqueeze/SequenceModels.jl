@@ -13,7 +13,7 @@ function BatchLayerNorm(x::AbstractArray{T, 3} where T; ϵ = 1e-8, scale = 1.0, 
     return xnorm .* scale .+ bias
 end
 
-function Projection(x::AbstractArray{T, 3} where T, P::AbstractArray{T, 2} where T)
+function Projection(x::AbstractArray{T, 3}, P::AbstractArray{T, 2}) where T
     Inner = cat([@inbounds x[:, :, batch] * P[:, batch] for batch in 1:size(x, 3)]..., dims=2)
     NormSqr = sum(P .^ 2, dims=2)
     α = Inner / NormSqr
