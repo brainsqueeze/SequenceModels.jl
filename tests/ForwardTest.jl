@@ -12,4 +12,6 @@ Y = map(a->Int32.(a), [[3,7,3,5], [8,6,4,5,2,1], [10,7,5], [11,3]]);
 @time (output, context, decoutput, crosscontext) = Model(X, Y);
 println(size(output))
 
-@time Model(X, Y);
+# @time Model(X, Y);
+
+println(crosscontext)

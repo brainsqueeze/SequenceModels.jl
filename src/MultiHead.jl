@@ -25,7 +25,7 @@ Flux.@treelike MultiHeadAttention
 
 function ScalarDotAttention(Query::AbstractArray{T, 3}, Key::AbstractArray{T, 3}, Value::AbstractArray{T, 3}; futuremask = false) where T
     Numerator = cat([@inbounds Query[:, :, batch] * transpose(Key[:, :, batch]) for batch in 1:size(Query, 3)]..., dims=3)
-    Denominator = sqrt(size(Key, 1))
+    Denominator = Float32(sqrt(size(Key, 1)))
 
     if futuremask
         (S, D, N) = size(Numerator)
