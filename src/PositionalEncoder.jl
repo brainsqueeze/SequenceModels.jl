@@ -24,8 +24,5 @@ PositionEncoder(seqLen::Integer, dims::Integer) = PositionEncoder(param(gpu(buil
 function (m::PositionEncoder)(x::AbstractArray{T, 3}, mask::AbstractArray{T, 3}) where T
     maxLen = size(m.E, 1)
     x = x[1:min(size(x, 1), maxLen), :, :]
-
-    println(typeof(m.E), ' ', typeof(x), ' ', typeof(mask))
-
     return (m.E .* mask) .+ x
 end

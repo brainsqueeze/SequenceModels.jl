@@ -12,7 +12,7 @@ function BatchLayerNorm(x::AbstractArray{T, 3} where T; ϵ = 1e-8, scale = 1.0, 
 
     average = mean(x, 3)
     variance = mean((x .- average) .^ 2, 3)
-    xnorm = (x .- average) ./ Float32.((variance .+ ϵ) .^ 0.5)
+    xnorm = (x .- average) ./ Float32.((variance .+ ϵ) .^ Float32(0.5))
     return xnorm .* scale .+ bias
 end
 

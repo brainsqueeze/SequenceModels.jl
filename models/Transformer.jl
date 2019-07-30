@@ -68,7 +68,6 @@ function (m::SequenceModel)(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) wher
         y = m.MHA(y, y, y, futuremask=true)
     end
     y = m.HDrop(y) .+ y
-    println(size(y[:, :, 1]))
     y = BatchLayerNorm(y)
 
     CrossContext = m.Attn(x .* EncMask, y .* DecMask)

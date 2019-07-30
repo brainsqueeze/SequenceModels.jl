@@ -4,9 +4,9 @@ using LinearAlgebra
 include("TensorOps.jl")
 
 struct MultiHeadAttention{T}
-    WQueries::AbstractArray{T, 1}
-    WKeys::AbstractArray{T, 1}
-    WValues::AbstractArray{T, 1}
+    WQueries::AbstractArray{T, 3}
+    WKeys::AbstractArray{T, 3}
+    WValues::AbstractArray{T, 3}
     HeadDense::Flux.TrackedArray
     L::Integer
 end
@@ -14,9 +14,9 @@ end
 function MultiHeadAttention(dims::Integer, layers::Integer)
     OutDims = Int32(floor(dims / layers))
     MultiHeadAttention(
-        [Flux.param(randn(Float32, dims, OutDims)) for _ in 1:layers],
-        [Flux.param(randn(Float32, dims, OutDims)) for _ in 1:layers],
-        [Flux.param(randn(Float32, dims, OutDims)) for _ in 1:layers],
+        Flux.param(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3)),
+        Flux.param(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3)),
+        Flux.param(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3)),
         Flux.param(randn(Float32, dims, dims)),
         layers
     )
@@ -44,9 +44,9 @@ function _MHALayer(MHA::MultiHeadAttention, MHAData::AbstractArray{T, 1} where T
     (Query, Key, Value) = MHAData
     Nbatches = size(Query, 3)
 
-    HQueries = cat([@inbounds Query[:, :, batch] * MHA.WQueries[L] for batch in 1:Nbatches]..., dims=3)
-    HKeys = cat([@inbounds Key[:, :, batch] * MHA.WKeys[L] for batch in 1:Nbatches]..., dims=3)
-    HValues = cat([@inbounds Value[:, :, batch] * MHA.WValues[L] for batch in 1:Nbatches]..., dims=3)
+    HQueries = cat([@inbounds Query[:, :, batch] * MHA.WQueries[:, :, L] for batch in 1:Nbatches]..., dims=3)
+    HKeys = cat([@inbounds Key[:, :, batch] * MHA.WKeys[:, :, L] for batch in 1:Nbatches]..., dims=3)
+    HValues = cat([@inbounds Value[:, :, batch] * MHA.WValues[:, :, L] for batch in 1:Nbatches]..., dims=3)
 
     return ScalarDotAttention(HQueries, HKeys, HValues, futuremask=futuremask)
 end
