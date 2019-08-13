@@ -1,4 +1,5 @@
-using Flux: param, TrackedArray, gpu
+using Flux: gpu
+using Flux.Tracker: data
 
 function build_encoder(seqLen::Integer, dims::Integer)
     positions = 1:seqLen
@@ -16,10 +17,10 @@ function build_encoder(seqLen::Integer, dims::Integer)
 end
 
 struct PositionEncoder{T}
-    E::TrackedArray{T, 2}
+    E::AbstractArray{T, 2}
 end
 
-PositionEncoder(seqLen::Integer, dims::Integer) = PositionEncoder(param(gpu(build_encoder(seqLen, dims))))
+PositionEncoder(seqLen::Integer, dims::Integer) = PositionEncoder(data(gpu(build_encoder(seqLen, dims))))
 
 function (m::PositionEncoder)(x::AbstractArray{T, 3}, mask::AbstractArray{T, 3}) where T
     maxLen = size(m.E, 1)

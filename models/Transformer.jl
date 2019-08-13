@@ -37,8 +37,6 @@ function (m::SequenceModel)(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) wher
     x = m.Emb(x)
     x = SequencePad(x, m.T)
     EncMask = SequenceMask(x, EncSeqLens)
-    # println(typeof(m.PosEnc(x, EncMask)))
-    # println(typeof(x))
     x = m.PosEnc(x, EncMask)
     x = m.IDrop(x)
     
@@ -59,7 +57,7 @@ function (m::SequenceModel)(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) wher
 
     y = m.Emb(y)
     y = SequencePad(y, m.T)
-    DecMask = Flux.param(SequenceMask(y, DecSeqLens))
+    DecMask = SequenceMask(y, DecSeqLens)
     y = m.PosEnc(y, DecMask)
     y = m.IDrop(y)
 

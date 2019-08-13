@@ -14,10 +14,10 @@ end
 function MultiHeadAttention(dims::Integer, layers::Integer)
     OutDims = Int32(floor(dims / layers))
     MultiHeadAttention(
-        Flux.param(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3)),
-        Flux.param(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3)),
-        Flux.param(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3)),
-        Flux.param(randn(Float32, dims, dims)),
+        Flux.param(Flux.gpu(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3))),
+        Flux.param(Flux.gpu(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3))),
+        Flux.param(Flux.gpu(cat([randn(Float32, dims, OutDims) for _ in 1:layers]..., dims=3))),
+        Flux.param(Flux.gpu(randn(Float32, dims, dims))),
         layers
     )
 end
