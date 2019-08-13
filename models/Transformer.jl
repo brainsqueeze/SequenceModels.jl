@@ -8,38 +8,39 @@ include("../src/SequenceTools.jl")
 include("../src/MultiHead.jl")
 include("../src/FeedForward.jl")
 
-struct SequenceModel
+struct SequenceFeed
     T::Integer
     V::Integer
-    D::Integer
+    Emb
+end
+
+SequenceFeed(Dims::Integer, VocabSize::Integer, TimeSteps::Integer) = SequenceFeed(TimeSteps, VocabSize, Embedding(VocabSize, Dims))
+Flux.@treelike SequenceFeed
+
+(m::SequenceFeed)(x::AbstractArray{T, 1} where T) = SequencePad(m.Emb(x), m.T)
+
+struct Encoding
     S::Integer
     IDrop
     HDrop
-    Emb
     PosEnc
-    Attn
     MHA
     FFN
 end
 
-SequenceModel(Dims::Integer, VocabSize::Integer, TimeSteps::Integer, MHALayers::Integer, MHAStacks::Integer) = SequenceModel(
-    TimeSteps, VocabSize, Dims, MHAStacks,
+Encoding(Dims::Integer, TimeSteps::Integer, MHALayers::Integer, MHAStacks::Integer) = Encoding(
+    MHAStacks,
     Dropout(0.1), Dropout(0.1),
-    Embedding(VocabSize, Dims), PositionEncoder(TimeSteps, Dims),
-    Attention(Dims), MultiHeadAttention(Dims, MHALayers),
+    PositionEncoder(TimeSteps, Dims), MultiHeadAttention(Dims, MHALayers),
     PointwiseFeedForward(Dims))
-Flux.@treelike SequenceModel
+Flux.@treelike Encoding
 
-function (m::SequenceModel)(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
-    EncSeqLens = SequenceLengths(x)
-    DecSeqLens = SequenceLengths(y)
+function (m::Encoding)(x::AbstractArray{T, 3}, SeqLens::AbstractArray{Int32, 1}) where T
+    Mask = SequenceMask(x, SeqLens)
 
-    x = m.Emb(x)
-    x = SequencePad(x, m.T)
-    EncMask = SequenceMask(x, EncSeqLens)
-    x = m.PosEnc(x, EncMask)
+    x = m.PosEnc(x, Mask)
     x = m.IDrop(x)
-    
+
     # multi-head attention
     for _ in 1:m.S
         x = m.MHA(x, x, x)
@@ -51,14 +52,29 @@ function (m::SequenceModel)(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) wher
     x = m.FFN(x)
     x = m.HDrop(x) .+ x
     x = BatchLayerNorm(x)
+    return x, Mask
+end
 
-    # Bahdanau attention
-    context = m.Attn(x .* EncMask)
+struct Decoding
+    S::Integer
+    IDrop
+    HDrop
+    PosEnc
+    MHA
+    FFN
+end
 
-    y = m.Emb(y)
-    y = SequencePad(y, m.T)
-    DecMask = SequenceMask(y, DecSeqLens)
-    y = m.PosEnc(y, DecMask)
+Decoding(Dims::Integer, TimeSteps::Integer, MHALayers::Integer, MHAStacks::Integer) = Decoding(
+    MHAStacks,
+    Dropout(0.1), Dropout(0.1),
+    PositionEncoder(TimeSteps, Dims), MultiHeadAttention(Dims, MHALayers),
+    PointwiseFeedForward(Dims))
+Flux.@treelike Decoding
+
+function (m::Decoding)(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}, SeqLens::AbstractArray{Int32, 1}, Context::AbstractArray{T, 2}, EncMask::AbstractArray{T, 3}, Attn::Attention) where T
+    Mask = SequenceMask(x, SeqLens)
+
+    y = m.PosEnc(y, Mask)
     y = m.IDrop(y)
 
     # multi-head attention
@@ -68,6 +84,27 @@ function (m::SequenceModel)(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) wher
     y = m.HDrop(y) .+ y
     y = BatchLayerNorm(y)
 
-    CrossContext = m.Attn(x .* EncMask, y .* DecMask)
-    return x, context, y, CrossContext
+    CrossContext = Attn(x .* EncMask, y .* Mask)
+    y = Projection(y, CrossContext)
+    y = m.HDrop(y) .+ y
+    y = BatchLayerNorm(y)
+    y = m.FFN(y)
+    y = m.HDrop(y) .+ y
+    y = BatchLayerNorm(y)
+
+    y = Projection(y, Context)
+    return m.HDrop(y) .+ y
+end
+
+
+struct DenseProjection{T}
+    Bias::AbstractArray{T, 2}
+end
+
+DenseProjection(VocabSize::Integer) = DenseProjection(Flux.param(Flux.gpu(zeros(Float32, 1, VocabSize))))
+Flux.@treelike DenseProjection
+
+function (m::DenseProjection)(x::AbstractArray{T, 3}, W::AbstractArray{T, 2}) where T
+    x_out = cat([@inbounds x[:, :, batch] * transpose(W) for batch in 1:size(x, 3)]..., dims=3)
+    return x_out .+ m.Bias
 end
