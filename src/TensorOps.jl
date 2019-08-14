@@ -28,3 +28,15 @@ function Projection(x::AbstractArray{T, 3}, P::AbstractArray{T, 2}) where T
     α = Inner ./ NormSqr
     return cat([@inbounds α[:, batch] .* P[:, batch]' for batch in 1:size(α, 2)]..., dims=3)
 end
+
+function TensorDot(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T
+    x = reshape(x, (size(x, 1), size(x, 2), 1, size(x, 3)))
+    y = reshape(y, (1, size(y, 1), size(y, 2), 1))
+    return dropdims(sum(x .* y, dims=2), dims=2)
+end
+
+function BatchMatMul(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T
+    x = reshape(x, (size(x, 1), size(x, 2), 1, size(x, 3)))
+    y = reshape(y, (1, size(y, 1), size(y, 2), size(y, 3)))
+    return dropdims(sum(x .* y, dims=2), dims=2)
+end
