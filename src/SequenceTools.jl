@@ -14,9 +14,14 @@ function SequenceMask(x::AbstractArray{T, 3} where T, seqLens::AbstractArray{T, 
 end
 
 _MakePad(rows::Integer, columns::Integer) = data(gpu(zeros(Float32, rows, columns)))
-_PadMerge(x::TrackedArray, pad::AbstractArray) = collect(vcat(x, pad))
+_PadMerge(x::AbstractArray, pad::AbstractArray) = collect(vcat(x, pad))
 
 function SequencePad(x::AbstractArray{T, 1} where T, maxLen::Integer)
     seqLens = SequenceLengths(x)
     return gpu(cat([_PadMerge(x[batch], _MakePad(maxLen - seqLens[batch], size(x[batch], 2))) for batch in 1:size(x, 1)]..., dims=3))
+end
+
+function ArrayPad(x::AbstractArray{T, 1} where T, maxLen::Integer)
+    seqLens = SequenceLengths(x)
+    return data(gpu(cat([vcat(x[batch], zeros(Float32, maxLen - seqLens[batch], size(x[batch], 2))) for batch in 1:size(x, 1)]..., dims=3)))
 end
