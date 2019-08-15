@@ -29,14 +29,18 @@ function Projection(x::AbstractArray{T, 3}, P::AbstractArray{T, 2}) where T
     return cat([@inbounds α[:, batch] .* P[:, batch]' for batch in 1:size(α, 2)]..., dims=3)
 end
 
-function TensorDot(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T
+function cutensordot(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T
     x = reshape(x, (size(x, 1), size(x, 2), 1, size(x, 3)))
     y = reshape(y, (1, size(y, 1), size(y, 2), 1))
     return dropdims(sum(x .* y, dims=2), dims=2)
 end
+tensordot(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T = cat([@inbounds x[:, :, batch] * y for batch in 1:size(x, 3)]..., dims=3)
+TensorDot(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T = typeof(x.data) <: Array ? tensordot(x, y) : cutensordot(x, y)
 
-function BatchMatMul(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T
+function batchcumatmul(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T
     x = reshape(x, (size(x, 1), size(x, 2), 1, size(x, 3)))
     y = reshape(y, (1, size(y, 1), size(y, 2), size(y, 3)))
     return dropdims(sum(x .* y, dims=2), dims=2)
 end
+batchmatmul(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T = cat([@inbounds x[:, :, batch] * y[:, :, batch] for batch in 1:size(x, 3)]..., dims=3)
+BatchMatMul(x::AbstractArray{T, 3}, y::AbstractArray{T, 3}) where T = typeof(x.data) <: Array ? batchmatmul(x, y) : batchcumatmul(x, y)
