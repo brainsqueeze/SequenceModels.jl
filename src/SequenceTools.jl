@@ -23,5 +23,5 @@ end
 
 function ArrayPad(x::AbstractArray{T, 1} where T, maxLen::Integer)
     seqLens = SequenceLengths(x)
-    return data(gpu(cat([vcat(x[batch], zeros(Float32, maxLen - seqLens[batch], size(x[batch], 2))) for batch in 1:size(x, 1)]..., dims=3)))
+    return gpu(cat([vcat(x[batch], zeros(Float32, maxLen - seqLens[batch], size(x[batch], 2))) for batch in 1:size(x, 1)]..., dims=3))
 end

@@ -12,7 +12,9 @@ PointwiseFeedForward(dims::Integer) = PointwiseFeedForward(
 Flux.@treelike PointwiseFeedForward
 
 function (m::PointwiseFeedForward)(x::AbstractArray{T, 3} where T) 
-    x = permutedims(repeat(x, outer=[1, 1, 1, 1]), [1, 4, 2, 3])
+    # x = permutedims(repeat(x, outer=[1, 1, 1, 1]), [1, 4, 2, 3])
+    (T, D, N) = size(x)
+    x = reshape(x, (T, 1, D, N))
     x = m.SecondFilter(m.FirstFilter(x))
     return dropdims(x, dims=2)
 end

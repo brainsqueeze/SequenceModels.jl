@@ -21,13 +21,24 @@ end
 function Projection(x::AbstractArray{T, 3}, P::AbstractArray{T, 2}) where T
     TimeSteps = size(x, 1)
 
-    Inner = gpu(cat([@inbounds x[:, :, batch] * P[:, batch] for batch in 1:size(x, 3)]..., dims=2))
+    Inner = BatchAffineNoBias(x, P)
     NormSqr = sum(P .^ 2, dims=1)
     NormSqr = repeat(NormSqr, outer=[TimeSteps, 1])
-    
     α = Inner ./ NormSqr
-    return cat([@inbounds α[:, batch] .* P[:, batch]' for batch in 1:size(α, 2)]..., dims=3)
+
+    if (typeof(α) <: Array)
+        return cat([@inbounds α[:, batch] .* P[:, batch]' for batch in 1:size(α, 2)]..., dims=3)
+    else
+        return reshape(α, (size(α, 1), 1, size(α, 2))) .* reshape(P, (1, size(P, 1), size(P, 2)))
+    end
 end
+
+function batchcuaffinenobias(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T
+    y = reshape(y, (1, size(y, 1), size(y, 2)))
+    return dropdims(sum(x .* y, dims=2), dims=2)
+end
+batchaffinenobias(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T = cat([@inbounds x[:, :, batch] * y[:, batch] for batch in 1:size(x, 3)]..., dims=2)
+BatchAffineNoBias(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T = typeof(x.data) <: Array ? batchaffinenobias(x, y) : batchcuaffinenobias(x, y)
 
 function cutensordot(x::AbstractArray{T, 3}, y::AbstractArray{T, 2}) where T
     x = reshape(x, (size(x, 1), size(x, 2), 1, size(x, 3)))

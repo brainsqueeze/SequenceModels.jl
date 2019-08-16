@@ -27,7 +27,7 @@ function Model(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     y = Input(y)
     y = Decode(x, y, DecSeqLens, context, EncMask, Attn)
 
-    y = Output(y, Flux.gpu(Input.Emb.E))
+    y = Output(y, Input.Emb.E)
     return y
 end
 

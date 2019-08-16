@@ -105,6 +105,7 @@ DenseProjection(VocabSize::Integer) = DenseProjection(Flux.param(Flux.gpu(zeros(
 Flux.@treelike DenseProjection
 
 function (m::DenseProjection)(x::AbstractArray{T, 3}, W::AbstractArray{T, 2}) where T
-    x_out = cat([@inbounds x[:, :, batch] * transpose(W) for batch in 1:size(x, 3)]..., dims=3)
+    # x_out = cat([@inbounds x[:, :, batch] * transpose(W) for batch in 1:size(x, 3)]..., dims=3)
+    x_out = TensorDot(x, transpose(W))
     return x_out .+ m.Bias
 end
