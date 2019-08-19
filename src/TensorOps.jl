@@ -1,4 +1,4 @@
-using Flux: gpu
+import Flux: gpu
 
 function TensorSoftmax(x::AbstractArray{T, 3} where T; dims = 3)
     max = maximum(x, dims=dims)

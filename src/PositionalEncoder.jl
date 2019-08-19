@@ -1,5 +1,5 @@
-using Flux: gpu
-using Flux.Tracker: data
+import Flux: gpu
+import Flux.Tracker: data
 
 function build_encoder(seqLen::Integer, dims::Integer)
     positions = 1:seqLen

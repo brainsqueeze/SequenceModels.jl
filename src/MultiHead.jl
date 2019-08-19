@@ -1,5 +1,5 @@
-using Flux
-using LinearAlgebra
+import Flux
+import LinearAlgebra
 
 include("TensorOps.jl")
 

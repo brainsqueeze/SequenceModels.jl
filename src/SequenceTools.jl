@@ -1,5 +1,5 @@
-using Flux: gpu
-using Flux.Tracker: data, collect
+import Flux: gpu
+import Flux.Tracker: data, collect
 
 SequenceLengths(x::AbstractArray{T, 1} where T) = [Int32(size(x[batch], 1)) for batch in 1:size(x, 1)]
 

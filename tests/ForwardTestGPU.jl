@@ -1,4 +1,4 @@
-using CuArrays
+import CuArrays
 
 include("../models/Transformer.jl")
 

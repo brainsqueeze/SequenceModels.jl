@@ -1,4 +1,4 @@
-using CuArrays
+# using CuArrays
 
 include("../models/Transformer.jl")
 include("../src/TensorOps.jl")
@@ -19,6 +19,8 @@ const Output = DenseProjection(Vocab)
 const Attn = Attention(EmbDims)
 const θ = Flux.params(Input, Encode, Decode, Output, Attn)
 
+const opt = Flux.ADAM(0.1);
+
 function Model(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     EncSeqLens = SequenceLengths(x)
     x = Input(x)
@@ -37,7 +39,7 @@ function Loss(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     # GC.gc()
     (Steps, Labels, Batches) = size(ŷ)
 
-    y = map(seq -> Flux.param(Float32.(transpose(Flux.onehotbatch(seq, 1:Labels)))), y)
+    y = map(seq -> Flux.param(Float32.(Flux.collect(transpose(Flux.onehotbatch(seq, 1:Labels))))), y)
     y = ArrayPad(y, Steps)
     s = TensorSoftmax(ŷ, dims=2)
     cost = y .* log.(s) + (1 .- y) .* log.(1 .- s)
@@ -47,4 +49,6 @@ end
 @time loss = Loss(X, Y);
 println(loss)
 @time grads = Flux.Tracker.gradient(() -> loss, θ);
-println(grads)
+@time Flux.Tracker.update!(opt, θ, grads)
+
+# println(grads.grads)

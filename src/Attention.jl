@@ -1,4 +1,4 @@
-using Flux
+import Flux
 
 include("TensorOps.jl")
 

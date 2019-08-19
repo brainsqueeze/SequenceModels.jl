@@ -1,4 +1,4 @@
-using Flux
+import Flux
 
 struct PointwiseFeedForward
     FirstFilter::Flux.Conv
