@@ -7,7 +7,7 @@ end
 
 mean(x::AbstractArray, dims::Integer) = sum(x, dims=dims) / size(x, dims)
 
-function BatchLayerNorm(x::AbstractArray{T, 3} where T; ϵ::Float32 = 1e-8, scale::Float32 = 1.0, bias::Float32 = 0)
+function BatchLayerNorm(x::AbstractArray{T, 3} where T; ϵ = 1e-8, scale = 1.0, bias = 0)
     ϵ = Float32(ϵ)
     scale = Float32(scale)
     bias = Float32(bias)
