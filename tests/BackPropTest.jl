@@ -46,9 +46,11 @@ function Loss(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     return - sum(cost) / prod(size(cost))
 end
 
-@time loss = Loss(X, Y);
-println(loss)
-@time grads = Flux.Tracker.gradient(() -> loss, θ);
-@time Flux.Tracker.update!(opt, θ, grads)
+# @time loss = Loss(X, Y);
+# println(loss)
+# @time grads = Flux.Tracker.gradient(() -> loss, θ);
+# @time Flux.Tracker.update!(opt, θ, grads)
 
 # println(grads.grads)
+
+@time Flux.train!(Loss, θ, zip(X, Y), opt);
