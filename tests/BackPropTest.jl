@@ -53,4 +53,4 @@ end
 
 # println(grads.grads)
 
-@time Flux.train!(Loss, θ, collect(zip(X, Y)), opt)
+@time Flux.train!(Loss, θ, [(X, Y)], opt)
