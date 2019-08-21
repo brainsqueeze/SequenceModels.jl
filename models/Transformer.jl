@@ -105,6 +105,6 @@ DenseProjection(VocabSize::Integer) = DenseProjection(Flux.param(Flux.gpu(zeros(
 Flux.@treelike DenseProjection
 
 function (m::DenseProjection)(x::AbstractArray{T, 3}, W::AbstractArray{T, 2}) where T
-    x_out = TensorDot(x, Flux.collect(transpose(W)))
+    x_out = TensorDot(x, permutedims(W, [2, 1]))
     return x_out .+ m.Bias
 end

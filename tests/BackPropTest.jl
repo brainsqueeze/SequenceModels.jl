@@ -1,4 +1,4 @@
-# using CuArrays
+import CuArrays
 
 include("../models/Transformer.jl")
 include("../src/TensorOps.jl")
@@ -39,16 +39,18 @@ function Loss(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     # GC.gc()
     (Steps, Labels, Batches) = size(ŷ)
 
-    y = map(seq -> Flux.param(Float32.(Flux.collect(transpose(Flux.onehotbatch(seq, 1:Labels))))), y)
+    y = map(seq -> Flux.param(Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1]))), y)
     y = ArrayPad(y, Steps)
     s = TensorSoftmax(ŷ, dims=2)
     cost = y .* log.(s) + (1 .- y) .* log.(1 .- s)
     return - sum(cost) / prod(size(cost))
 end
 
-@time loss = Loss(X, Y);
-println(loss)
-@time grads = Flux.Tracker.gradient(() -> loss, θ);
-@time Flux.Tracker.update!(opt, θ, grads)
+# @time loss = Loss(X, Y);
+# println(loss)
+# @time grads = Flux.Tracker.gradient(() -> loss, θ);
+# @time Flux.Tracker.update!(opt, θ, grads)
 
 # println(grads.grads)
+
+@time Flux.train!(Loss, θ, collect(zip(X, Y)), opt)
