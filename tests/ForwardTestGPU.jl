@@ -1,4 +1,5 @@
-import CuArrays
+using CuArrays
+CuArrays.allowscalar(false)
 
 include("../models/Transformer.jl")
 

@@ -1,11 +1,22 @@
 import Flux: gpu
 
-function TensorSoftmax(x::AbstractArray{T, 3} where T; dims = 3)
-    max = maximum(x, dims=dims)
-    return exp.(x .- max) ./ sum(exp.(x .- max), dims=dims)
+mean(x::AbstractArray, dims::Integer) = sum(x, dims=dims) / size(x, dims)
+function _CUDAmaximum(x::AbstractArray{T}; dims=:) where T
+    minvals = fill!(similar(x, T, Base.reduced_indices(x, dims)), typemin(T))
+    Base._mapreducedim!(identity, max, minvals, x.data) |> Flux.param
+end
+function _CUDAminimum(x::AbstractArray{T}; dims=:) where T
+    maxvals = fill!(similar(x, T, Base.reduced_indices(x, dims)), typemax(T))
+    Base._mapreducedim!(identity, min, maxvals, x) |> Flux.param
 end
 
-mean(x::AbstractArray, dims::Integer) = sum(x, dims=dims) / size(x, dims)
+TensorMax(x::AbstractArray{T}; dims=:) where T = typeof(x.data) <: Array ? maximum(x, dims=dims) : _CUDAmaximum(x, dims=dims)
+TensorMin(x::AbstractArray{T}; dims=:) where T = typeof(x.data) <: Array ? minimum(x, dims=dims) : _CUDAminimum(x, dims=dims)
+
+function TensorSoftmax(x::AbstractArray{T, 3} where T; dims = 3)
+    max = TensorMax(x, dims=dims)
+    return exp.(x .- max) ./ sum(exp.(x .- max), dims=dims)
+end
 
 function BatchLayerNorm(x::AbstractArray{T, 3} where T; ϵ = 1e-8, scale = 1.0, bias = 0)
     ϵ = Float32(ϵ)

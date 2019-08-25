@@ -1,4 +1,5 @@
-# import CuArrays
+import CuArrays
+# CuArrays.allowscalar(false)
 
 include("../models/Transformer.jl")
 include("../src/TensorOps.jl")
@@ -46,11 +47,7 @@ function Loss(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     return - sum(cost) / prod(size(cost))
 end
 
-# @time loss = Loss(X, Y);
-# println(loss)
-# @time grads = Flux.Tracker.gradient(() -> loss, θ);
-# @time Flux.Tracker.update!(opt, θ, grads)
+@time grads = Flux.Tracker.gradient(() -> Loss(X, Y), θ);
+@time Flux.Tracker.update!(opt, θ, grads)
 
-# println(grads.grads)
-
-@time Flux.train!(Loss, θ, [(X, Y)], opt)
+# @time Flux.Optimise.train!(Loss, θ, [(X, Y)], opt)

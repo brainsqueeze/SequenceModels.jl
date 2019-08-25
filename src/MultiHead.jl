@@ -28,8 +28,7 @@ function ScalarDotAttention(Query::AbstractArray{T, 3}, Key::AbstractArray{T, 3}
     Denominator = Float32(sqrt(size(Key, 1)))
 
     if futuremask
-        (S, D, N) = size(Numerator)
-        Mask = ones(Float32, S, D)
+        Mask = ones(Float32, size(Numerator)[1:2])
 
         # lower triangular matrix with very large negative numbers
         Mask = LinearAlgebra.tril!(trues(size(Mask)), -1) * Float32(-1e9)
