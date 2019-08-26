@@ -1,12 +1,12 @@
 import Flux
 
-include("../src/TensorOps.jl")
-include("../src/Embedding.jl")
-include("../src/PositionalEncoder.jl")
-include("../src/Attention.jl")
-include("../src/SequenceTools.jl")
-include("../src/MultiHead.jl")
-include("../src/FeedForward.jl")
+include("../../src/TensorOps.jl")
+include("../../src/Embedding.jl")
+include("../../src/PositionalEncoder.jl")
+include("../../src/Attention.jl")
+include("../../src/SequenceTools.jl")
+include("../../src/MultiHead.jl")
+include("../../src/FeedForward.jl")
 
 struct SequenceFeed
     T::Integer
@@ -26,13 +26,15 @@ struct Encoding
     PosEnc
     MHA
     FFN
+    Attn
 end
 
 Encoding(Dims::Integer, TimeSteps::Integer, MHALayers::Integer, MHAStacks::Integer) = Encoding(
     MHAStacks,
     Dropout(0.1), Dropout(0.1),
     PositionEncoder(TimeSteps, Dims), MultiHeadAttention(Dims, MHALayers),
-    PointwiseFeedForward(Dims))
+    PointwiseFeedForward(Dims),
+    Attention(Dims))
 Flux.@treelike Encoding
 
 function (m::Encoding)(x::AbstractArray{T, 3}, SeqLens::AbstractArray{Int32, 1}) where T
@@ -52,7 +54,9 @@ function (m::Encoding)(x::AbstractArray{T, 3}, SeqLens::AbstractArray{Int32, 1})
     x = m.FFN(x)
     x = m.HDrop(x) .+ x
     x = BatchLayerNorm(x)
-    return x, Mask
+
+    context = m.Attn(x .* Mask)
+    return x, Mask, context
 end
 
 struct Decoding

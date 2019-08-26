@@ -1,7 +1,7 @@
-import CuArrays
+# import CuArrays
 # CuArrays.allowscalar(false)
 
-include("../models/Transformer.jl")
+include("../models/AttentionEmbed/Transformer.jl")
 include("../src/TensorOps.jl")
 
 const TimeSteps = 100
@@ -17,20 +17,18 @@ const Input = SequenceFeed(EmbDims, Vocab, TimeSteps)
 const Encode = Encoding(EmbDims, TimeSteps, Layers, Stacks)
 const Decode = Decoding(EmbDims, TimeSteps, Layers, Stacks)
 const Output = DenseProjection(Vocab)
-const Attn = Attention(EmbDims)
-const θ = Flux.params(Input, Encode, Decode, Output, Attn)
+const θ = Flux.params(Input, Encode, Decode, Output)
 
 const opt = Flux.ADAM(0.1);
 
 function Model(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     EncSeqLens = SequenceLengths(x)
     x = Input(x)
-    x, EncMask = Encode(x, EncSeqLens)
-    context = Attn(x .* EncMask)
+    x, EncMask, context = Encode(x, EncSeqLens)
 
     DecSeqLens = SequenceLengths(y)
     y = Input(y)
-    y = Decode(x, y, DecSeqLens, context, EncMask, Attn)
+    y = Decode(x, y, DecSeqLens, context, EncMask, Encode.Attn)
     y = Output(y, Input.Emb.E)
     return y
 end

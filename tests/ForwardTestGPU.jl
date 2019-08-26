@@ -1,7 +1,7 @@
 using CuArrays
 CuArrays.allowscalar(false)
 
-include("../models/Transformer.jl")
+include("../models/AttentionEmbed/Transformer.jl")
 
 TimeSteps = 100
 EmbDims = 128
@@ -16,17 +16,15 @@ Input = SequenceFeed(EmbDims, Vocab, TimeSteps)
 Encode = Encoding(EmbDims, TimeSteps, Layers, Stacks)
 Decode = Decoding(EmbDims, TimeSteps, Layers, Stacks)
 Output = DenseProjection(Vocab)
-Attn = Attention(EmbDims)
 
 function Model(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     EncSeqLens = SequenceLengths(x)
     x = Input(x)
-    x, EncMask = Encode(x, EncSeqLens)
-    context = Attn(x .* EncMask)
+    x, EncMask, context = Encode(x, EncSeqLens)
 
     DecSeqLens = SequenceLengths(y)
     y = Input(y)
-    y = Decode(x, y, DecSeqLens, context, EncMask, Attn)
+    y = Decode(x, y, DecSeqLens, context, EncMask, Encode.Attn)
 
     y = Output(y, Input.Emb.E)
     return y
