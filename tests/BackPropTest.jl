@@ -38,8 +38,9 @@ function Loss(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
     # GC.gc()
     (Steps, Labels, Batches) = size(ŷ)
 
-    y = map(seq -> Flux.param(Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1]))), y)
-    y = ArrayPad(y, Steps)
+    y = map(seq -> Flux.data(Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1]))), y)
+    # y = ArrayPad(y, Steps)
+    y = SequencePad(y, Steps)
     s = TensorSoftmax(ŷ, dims=2)
     cost = y .* log.(s) + (1 .- y) .* log.(1 .- s)
     return - sum(cost) / prod(size(cost))

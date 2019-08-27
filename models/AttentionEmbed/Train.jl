@@ -23,7 +23,7 @@ const Decode = Decoding(EmbDims, TimeSteps, Layers, Stacks)
 const Output = DenseProjection(ModelVocab)
 
 const θ = Flux.params(Input, Encode, Decode, Output)
-const opt = Flux.ADAM(0.1)
+const opt = Flux.ADAM(0.001)
 
 const Lookup = TopNLookup(TokenFrequencies(sentences), Vocab)
 const cvX = TokenizeLookup(cvData, Lookup)
@@ -51,13 +51,14 @@ function Model(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
 end
 
 function Loss(x::AbstractArray{T, 1}, xdecode::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
+    ϵ = Float32(1e-8)
     ŷ = Model(x, xdecode)
     (Steps, Labels, Batches) = size(ŷ)
 
-    y = map(seq -> Flux.param(Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1]))), y)
-    y = ArrayPad(y, Steps)
+    y = map(seq -> Flux.data(Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1]))), y)
+    y = SequencePad(y, Steps)
     s = TensorSoftmax(ŷ, dims=2)
-    cost = y .* log.(s) + (1 .- y) .* log.(1 .- s)
+    cost = y .* log.(s .+ ϵ) + (1 .- y) .* log.(1 .- s .+ ϵ)
     return - sum(cost) / prod(size(cost))
 end
 
@@ -77,14 +78,16 @@ for epoch in 1:NumEpochs
         X = TokenizeLookup(sents, Lookup)
         XDecode, Y = MakeDecodeTarget(sents)
         loss = Loss(X, XDecode, Y)
-        println("\t minibatch loss: $loss")
+        println("\t mini-batch loss: $loss")
 
-        if loss == NaN32
-            println(sents)
+        if isnan(loss)
+            Ŷ = Model(X, XDecode)
+            s = TensorSoftmax(Ŷ, dims=2)
+            println("model output check: $(size(Ŷ[isnan.(Ŷ)]))")
+            println("nan check: $(size(Ŷ[isnan.(s)]))")
         end
 
         grads = Flux.Tracker.gradient(() -> loss, θ)
         Flux.Tracker.update!(opt, θ, grads)
     end
-
 end
