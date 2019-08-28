@@ -1,4 +1,4 @@
-# import CuArrays
+import CuArrays
 # CuArrays.allowscalar(false)
 
 include("../models/AttentionEmbed/Transformer.jl")
@@ -34,15 +34,18 @@ function Model(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
 end
 
 function Loss(x::AbstractArray{T, 1}, y::AbstractArray{T, 1}) where T
+    ϵ = Float32(1e-8)
     ŷ = Model(x, y)
     # GC.gc()
     (Steps, Labels, Batches) = size(ŷ)
 
-    y = map(seq -> Flux.data(Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1]))), y)
+    # y = map(seq -> Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1])) |> Flux.param, y)
     # y = ArrayPad(y, Steps)
+    y = map(seq -> Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1])) |> Flux.data, y)
     y = SequencePad(y, Steps)
+
     s = TensorSoftmax(ŷ, dims=2)
-    cost = y .* log.(s) + (1 .- y) .* log.(1 .- s)
+    cost = y .* log.(s .+ ϵ) + (1 .- y) .* log.(1 .- s .+ ϵ)
     return - sum(cost) / prod(size(cost))
 end
 

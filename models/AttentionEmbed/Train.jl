@@ -1,3 +1,6 @@
+import CuArrays
+import Zygote
+
 include("./DataTools.jl")
 include("./Transformer.jl")
 
@@ -12,7 +15,7 @@ const NumBatches = 20
 
 const Vocab = Int32(1e3)
 const ModelVocab = Vocab + 3
-const EmbDims = 128
+const EmbDims = 64
 const TimeSteps = GetMaxSequenceLength(trainData)
 const Layers = 8
 const Stacks = 1
@@ -23,7 +26,7 @@ const Decode = Decoding(EmbDims, TimeSteps, Layers, Stacks)
 const Output = DenseProjection(ModelVocab)
 
 const θ = Flux.params(Input, Encode, Decode, Output)
-const opt = Flux.ADAM(0.001)
+const opt = Flux.ADAM(0.01)
 
 const Lookup = TopNLookup(TokenFrequencies(sentences), Vocab)
 const cvX = TokenizeLookup(cvData, Lookup)
@@ -55,11 +58,17 @@ function Loss(x::AbstractArray{T, 1}, xdecode::AbstractArray{T, 1}, y::AbstractA
     ŷ = Model(x, xdecode)
     (Steps, Labels, Batches) = size(ŷ)
 
-    y = map(seq -> Flux.data(Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1]))), y)
-    y = SequencePad(y, Steps)
+    y = map(seq -> Float32.(permutedims(Flux.onehotbatch(seq, 1:Labels), [2, 1])) |> Flux.param, y)
+    y = ArrayPad(y, Steps)
+
     s = TensorSoftmax(ŷ, dims=2)
     cost = y .* log.(s .+ ϵ) + (1 .- y) .* log.(1 .- s .+ ϵ)
     return - sum(cost) / prod(size(cost))
+end
+
+function callback(x, xdecode, y)
+    GC.gc()
+    println("\t mini-batch loss: $(Loss(x, xdecode, y))")
 end
 
 for epoch in 1:NumEpochs
@@ -77,8 +86,14 @@ for epoch in 1:NumEpochs
         sents = _sent[start:stop]
         X = TokenizeLookup(sents, Lookup)
         XDecode, Y = MakeDecodeTarget(sents)
+        # Flux.Optimise.train!(Loss, θ, [(X, XDecode, Y)], opt; cb = () -> callback(X, XDecode, Y))
+
         loss = Loss(X, XDecode, Y)
+        # grads = Flux.Tracker.gradient(() -> loss, θ)
+        grads = Zygote.gradient(() -> loss, θ)
+        Flux.Tracker.update!(opt, θ, grads)
         println("\t mini-batch loss: $loss")
+        GC.gc()
 
         if isnan(loss)
             Ŷ = Model(X, XDecode)
@@ -86,8 +101,5 @@ for epoch in 1:NumEpochs
             println("model output check: $(size(Ŷ[isnan.(Ŷ)]))")
             println("nan check: $(size(Ŷ[isnan.(s)]))")
         end
-
-        grads = Flux.Tracker.gradient(() -> loss, θ)
-        Flux.Tracker.update!(opt, θ, grads)
     end
 end
